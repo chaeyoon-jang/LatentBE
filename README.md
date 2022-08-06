@@ -1,4 +1,4 @@
-# LatentBE code implementation
+# LatentBE Code Implementation
 This is a simple implementation of [Improving Ensemble Distillation With Weight Averaging and Diversifying Perturbation](https://arxiv.org/pdf/2206.15047.pdf). 
 
 I used the [Fashion MNIST](https://github.com/zalandoresearch/fashion-mnist) dataset. 
