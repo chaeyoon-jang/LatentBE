@@ -80,7 +80,6 @@ def train_kd(
             
             # loss_kd
             teacher_predicts = torch.stack(teacher_predicts, dim=1)
-            #print(teacher_predicts.size())
             teacher_predicts = torch.mean(teacher_predicts, dim=1)
             teacher_predicts = log_softmax(teacher_predicts/temperature)
             student_predicts = log_softmax(output/temperature)

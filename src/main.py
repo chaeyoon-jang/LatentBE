@@ -87,7 +87,7 @@ def main():
             model = CNN()
             model = model.to(device)
             tmodel.append(model)
-        smodel = CNN_be()
+        smodel = CNN_be(bias_is=True)
         smodel.to(device)
         
         print("Start student model trainig...")
@@ -118,7 +118,7 @@ def main():
             model = CNN()
             model = model.to(device)
             tmodel.append(model)
-        smodel = CNN_be()
+        smodel = CNN_be(bias_is=True)
         smodel.to(device)
         
         print("Start student model trainig...")

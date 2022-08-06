@@ -14,8 +14,11 @@ class ECELoss(nn.Module):
         self.bin_lowers = bin_boundaries[:-1]
         self.bin_uppers = bin_boundaries[1:]
 
-    def forward(self, logits, labels):
-        softmaxes = F.softmax(logits, dim=1)
+    def forward(self, logits, labels, t_opt=0):
+        if t_opt != 0:
+            softmaxes = F.softmax(logits/t_opt, dim=1)
+        else:
+            softmaxes = F.softmax(logits, dim=1)
         confidences, predictions = torch.max(softmaxes, 1)
         accuracies = predictions.eq(labels)
 
@@ -35,17 +38,21 @@ def accuracy(predicts, labels):
     score = score / labels.size(0)
     return score
 
-def nll(predicts, labels):
-    score = F.nll_loss(predicts, labels).item()
-    return score
+def nll(outputs, targets, t_opt=0):
+    if t_opt != 0:
+        score = torch.nn.NLLLoss(reduction="sum")(F.log_softmax(outputs/t_opt, dim=-1), targets)    
+    else: 
+        score = torch.nn.NLLLoss(reduction="sum")(F.log_softmax(outputs, dim=-1), targets)
+    return score.item()
 
-def ece(predicts, labels):
+def ece(predicts, labels, t_opt=0):
     metric = ECELoss(n_bins=15)
-    score = metric(predicts, labels)
+    score = metric(predicts, labels, t_opt)
     return score
 
 def temperature_scaling(predicts, temperature, log_input=True):
     if log_input:
         return F.log_softmax(predicts / temperature, dim=-1)
     else:
-        return F.softmax(np.log(predicts) / temperature, dim=-1)
+        
+        return F.softmax(torch.log(predicts) / temperature, dim=-1)
