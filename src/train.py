@@ -61,7 +61,7 @@ def train(
         model.train()
         epoch_loss = 0.0
         for step, (images, labels) in enumerate(train_loader):
-               
+            #print(images.size())
             images, labels = images.to(device), labels.to(device)
             output = model(images)
             
@@ -90,7 +90,7 @@ def train(
             if valid_loss < best_loss:
                 best_loss = valid_loss
                 save_ckpt(
-                    ckpt_path=p.join(ckpt_path, f"{seed}_teacher_model_checkpoint_epoch_{epoch + 1}.pt"), 
+                    ckpt_path=p.join(ckpt_path, f"cifar_{seed}_teacher_model_checkpoint_epoch_{epoch + 1}.pt"), 
                     model=model, epoch=epoch + 1, 
                     train_loss=train_loss, best_loss=valid_loss
                 )

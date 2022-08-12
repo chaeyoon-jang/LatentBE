@@ -2,31 +2,10 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 from tqdm import tqdm
-from scipy.optimize import minimize
-from utils import accuracy, nll, ece, temperature_scaling
+from utils import accuracy, nll, ece, get_optimal_temperature
 
-def get_optimal_temperature(confidences, labels):
-    confidences = F.softmax(confidences, dim=-1)
-    confidences = confidences.cpu()
-    labels = labels.cpu()
-    def obj(t):
-        target = labels.cpu().numpy()
-        return -np.log(
-            1e-12 + np.exp(
-                torch.log_softmax(
-                    torch.log(
-                        1e-12 + confidences
-                    ) / t, dim=1
-                ).data.numpy()
-            )[np.arange(len(target)), target]
-        ).mean()
 
-    optimal_temperature = minimize(
-        obj, 1.0, method="nelder-mead", options={"xtol": 1e-3}
-    ).x[0]
-    return optimal_temperature
-
-def evaluate_base(model, test_loader, device, inference=True):
+def evaluate_base(model, test_loader, valid_loader, device, inference=True):
     
     model.to(device)
     model.eval()
@@ -39,6 +18,11 @@ def evaluate_base(model, test_loader, device, inference=True):
         final_cnll = 0.0
         final_cece = 0.0
         
+        for valid_output, valid_labels in valid_loader:
+            valid_output, valid_labels = valid_output.to(device), valid_labels.to(device)
+            valid_output = model(valid_output)
+            t_opt = get_optimal_temperature(valid_output, valid_labels)
+                
         for step, (images, labels) in tqdm(enumerate(test_loader)):
             images, labels = images.to(device), labels.to(device)
             
@@ -50,10 +34,8 @@ def evaluate_base(model, test_loader, device, inference=True):
             acc_ = accuracy(output, labels)
             nll_ = nll(output, labels)
             ece_ = ece(output, labels)
-
-            t_opt = get_optimal_temperature(output, labels)
-            cnll_ = nll(output, labels, t_opt=2.0)
-            cece_ = ece(output, labels, t_opt=2.0)    
+            cnll_ = nll(output, labels, t_opt=t_opt)
+            cece_ = ece(output, labels, t_opt=t_opt)    
             
             final_acc += acc_
             final_nll += nll_
@@ -68,16 +50,17 @@ def evaluate_base(model, test_loader, device, inference=True):
         final_cece = final_cece / len(test_loader)
         
         print(float(final_acc))
-        print(float(final_nll)/100)
+        print(float(final_nll))
         print(float(final_ece))
-        print(float(final_cnll)/100)
+        print(float(final_cnll))
         print(float(final_cece)) 
                 
-        #print(f"acc : {final_acc : .3f} | nll : {final_nll : .3f} | ece : {final_ece : .3f}")
-        #print(f"cnll : {final_cece : .3f} | cece : {final_cnll : .3f}")
     
-def evaluate_ensemble(model, test_loader, ensemble_size, device):
-    
+def evaluate_ensemble(model, test_loader, valid_loader, ensemble_size, device):
+    """about try, except:
+        try -> to evaluate teacher ensemble model
+        except -> to evaluate batch ensemble model
+    """
     try:
         umodel = []
         for tmodel in model:
@@ -96,6 +79,22 @@ def evaluate_ensemble(model, test_loader, ensemble_size, device):
         final_cnll = 0.0
         final_cece = 0.0
         
+        try:
+            for images, valid_labels in valid_loader:
+                images, valid_labels = images.to(device), valid_labels.to(device)
+                valid_output = []
+                for tmodel in umodel:
+                    valid_output.append(tmodel(images))
+                valid_output = torch.stack(valid_output, dim=-1)
+                valid_output = torch.mean(valid_output, dim=-1)
+                t_opt = get_optimal_temperature(valid_output, valid_labels)
+        
+        except:
+            for valid_output, valid_labels in valid_loader:
+                valid_output, valid_labels = valid_output.to(device), valid_labels.to(device)
+                valid_output = model(valid_output)
+                t_opt = get_optimal_temperature(valid_output, valid_labels)
+                
         for step, (images, labels) in tqdm(enumerate(test_loader)):
             
             images, labels = images.to(device), labels.to(device)
@@ -118,8 +117,9 @@ def evaluate_ensemble(model, test_loader, ensemble_size, device):
             acc_ = accuracy(output, labels)
             nll_ = nll(output, labels)
             ece_ = ece(output, labels) 
-            cnll_ = nll(output, labels, t_opt=2.0)
-            cece_ = ece(output, labels, t_opt=2.0)   
+            
+            cnll_ = nll(output, labels, t_opt=t_opt)
+            cece_ = ece(output, labels, t_opt=t_opt)   
              
             final_acc += acc_
             final_nll += nll_
@@ -134,7 +134,7 @@ def evaluate_ensemble(model, test_loader, ensemble_size, device):
         final_cece = final_cece / len(test_loader)
 
         print(float(final_acc))
-        print(float(final_nll)/100)
+        print(float(final_nll))
         print(float(final_ece))
-        print(float(final_cnll)/100)
+        print(float(final_cnll))
         print(float(final_cece)) 

@@ -1,3 +1,4 @@
+import os
 import torch
 import wandb
 from datetime import datetime
@@ -17,14 +18,20 @@ def main():
     args = parser.parse_args()
     
     # Set device
+    os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"  # Arrange GPU devices starting from 0
+    os.environ["CUDA_VISIBLE_DEVICES"]= "3"  # Set the GPU 2 to use
+    
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(f"-- Running on {device}. -- ")
-    
     # Set seed
     set_seed(args.seed)
     
     # Loading data    
     print("Loading dataloaders...")
+    #transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+    #train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
+    #test_dataset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
+
     transform = transforms.Compose([transforms.Resize((32, 32)), transforms.ToTensor()])
 
     train_dataset = datasets.FashionMNIST('~/.pytorch/F_MNIST_data/', download=True, train=True, transform=transform)

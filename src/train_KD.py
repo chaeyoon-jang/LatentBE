@@ -76,7 +76,7 @@ def train_kd(
             output = smodel(images)
             
             # loss_ce
-            loss_ce = criterion(output, labels)
+            loss_ce = criterion(output, labels) 
             
             # loss_kd
             teacher_predicts = torch.stack(teacher_predicts, dim=1)
