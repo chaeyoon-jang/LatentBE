@@ -6,10 +6,10 @@ I used the [Fashion MNIST](https://github.com/zalandoresearch/fashion-mnist) dat
 ## How to use
 At root dir,
 - Train Teacher Models  
-`sh train_teacher_1.sh`
-`sh train_teacher_2.sh`
-`sh train_teacher_3.sh`
-`sh train_teacher_4.sh`
+- `sh train_teacher_1.sh`
+- `sh train_teacher_2.sh`
+- `sh train_teacher_3.sh`
+- `sh train_teacher_4.sh`
 
 - Train Baseline Model (Knowledge Distillation Model)
 `sh train_kd.sh`
