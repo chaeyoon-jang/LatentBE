@@ -78,7 +78,7 @@ def train_latentbe_div(
     optimizer = torch.optim.Adam(smodel.parameters(), lr=learning_rate)
     criterion = nn.CrossEntropyLoss()
     log_softmax = nn.LogSoftmax(dim=-1)
-    kld_loss  = nn.KLDivLoss(reduction='batchmean')
+    kld_loss  = nn.KLDivLoss()
     
     losses = []
     train_loss = []
@@ -121,9 +121,9 @@ def train_latentbe_div(
             
             # loss_kd
             teacher_predicts = torch.cat(teacher_predicts, 0)
-            teacher_predicts = F.log_softmax(teacher_predicts/temperature, dim=-1)
+            teacher_predicts = F.softmax(teacher_predicts/temperature, dim=-1)
             student_predicts = F.log_softmax(output/temperature, dim=-1)
-            loss_kd = kld_loss(student_predicts, teacher_predicts) * (temperature **2)
+            loss_kd = kld_loss(student_predicts, teacher_predicts) * (temperature*temperature*2.0)
             
             # loss_wd (L2 weight decay = Gaussian Prior)
             # loss_wd = sum(torch.linalg.norm(p, 2) for p in smodel.parameters())
@@ -161,7 +161,7 @@ def train_latentbe_div(
         if valid_loss < best_loss:
             best_loss = valid_loss
             best_epoch = epoch 
-            current_ckpt = f"LatentBE_div_model_checkpoint_epoch_{epoch + 1}.pt"
+            current_ckpt = f"renew2_LatentBE_div_model_checkpoint_epoch_{epoch + 1}.pt"
             
             if best_loss < 0.5:
                 save_ckpt(
@@ -172,4 +172,3 @@ def train_latentbe_div(
                 print(f"Success to save checkpoint.")
         else:
             print("No improvement detected. Skipping save")
-            
